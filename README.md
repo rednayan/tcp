@@ -1,3 +1,8 @@
+##### important links
+[tun-tap](https://docs.rs/tun-tap/latest/tun_tap/)
+[tun-tap-document](https://www.kernel.org/doc/Documentation/networking/tuntap.txt)
+[rfc-793](https://datatracker.ietf.org/doc/html/rfc793)
+
 ###### set the permissions for initializing tun interface
 ``` bash 
     sudo setcap cap_net_admin=eip target/release/tcp
