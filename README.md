@@ -31,4 +31,9 @@
 ``` bash 
     tshark -i tun0
 ```
---57.58--
+###### send tcp packets using nc 
+``` bash 
+    nc $ip $port
+```
+
+--01:09:57--

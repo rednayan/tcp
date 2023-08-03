@@ -2,14 +2,16 @@ use std::collections::HashMap;
 use std::io;
 use std::net::Ipv4Addr;
 
-struct TcpState {}
+mod tcp;
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 struct Quad {
     src: (Ipv4Addr, u16),
     dst: (Ipv4Addr, u16),
 }
 
 fn main() -> io::Result<()> {
-    let _connections: HashMap<Quad, TcpState> = Default::default();
+    let mut connections: HashMap<Quad, tcp::State> = Default::default();
     let nic = tun_tap::Iface::new("tun0", tun_tap::Mode::Tun)?;
     let mut buff = [0u8; 1504];
 
@@ -24,35 +26,33 @@ fn main() -> io::Result<()> {
             continue;
         }
         match etherparse::Ipv4HeaderSlice::from_slice(&buff[4..nbytes]) {
-            Ok(p) => {
-                let p_len = p.payload_len();
-                let src = p.source_addr();
-                let dst = p.destination_addr();
+            // ip header
+            Ok(iph) => {
+                let src = iph.source_addr();
+                let dst = iph.destination_addr();
                 // ip level protocol
-                let proto = p.protocol();
-
-                if proto != 0x06 {
+                if iph.protocol() != 0x06 {
                     // ignore packet that are not sent with tcp client
                     continue;
                 }
 
-                match etherparse::TcpHeaderSlice::from_slice(&buff[4 + p.slice().len()..]) {
-                    Ok(p) => {
+                match etherparse::TcpHeaderSlice::from_slice(&buff[4 + iph.slice().len()..nbytes]) {
+                    // tcp header
+                    Ok(tcph) => {
+                        let datai = 4 + iph.slice().len() + tcph.slice().len();
+                        connections
+                            .entry(Quad {
+                                src: (src, tcph.source_port()),
+                                dst: (dst, tcph.destination_port()),
+                            })
+                            .or_default()
+                            .on_packet(iph, tcph, &buff[datai..nbytes]);
                         // connection identity -> (srcip, srcport, dstip, dstport)
-                        eprintln!(
-                            "{} -> {} {}bytes of tcp ot port {}",
-                            src,
-                            dst,
-                            p.slice().len(),
-                            p.destination_port(),
-                        )
                     }
                     Err(e) => {
                         eprintln!("WARNING: ignoring weird tcp packet: {:?}", e);
                     }
                 }
-
-                eprintln!("{} -> {} {}bytes of protocol {}", src, dst, p_len, proto)
             }
             Err(e) => {
                 eprintln!("WARNING: ignoring the packet: {:?}", e);
