@@ -12,7 +12,7 @@ struct Quad {
 
 fn main() -> io::Result<()> {
     let mut connections: HashMap<Quad, tcp::State> = Default::default();
-    let nic = tun_tap::Iface::new("tun0", tun_tap::Mode::Tun)?;
+    let mut nic = tun_tap::Iface::new("tun0", tun_tap::Mode::Tun)?;
     let mut buff = [0u8; 1504];
 
     loop {
@@ -46,7 +46,7 @@ fn main() -> io::Result<()> {
                                 dst: (dst, tcph.destination_port()),
                             })
                             .or_default()
-                            .on_packet(iph, tcph, &buff[datai..nbytes]);
+                            .on_packet(&mut nic, iph, tcph, &buff[datai..nbytes])?;
                         // connection identity -> (srcip, srcport, dstip, dstport)
                     }
                     Err(e) => {
