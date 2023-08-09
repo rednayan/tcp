@@ -7,11 +7,47 @@ pub enum State {
     Estab,
 }
 
-impl Default for State {
+pub struct Connection {
+    state: State,
+}
+
+///  State of the Send Sequence Space (RFC 793 S3.2 F4)
+///  ````
+///               1         2          3          4
+///          ----------|----------|----------|----------
+///                 SND.UNA    SND.NXT    SND.UNA
+///                                      +SND.WND
+
+///    1 - old sequence numbers which have been acknowledged
+///    2 - sequence numbers of unacknowledged data
+///    3 - sequence numbers allowed for new data transmission
+///    4 - future sequence numbers which are not yet allowed
+///````
+
+struct SendSequence {
+    /// send unacknowledged
+    una: usize,
+    /// send next
+    nxt: usize,
+    /// send window
+    wnd: usize,
+    /// send urgnet pointers
+    up: bool,
+    /// segment sequence used for last window update
+    wl1: usize,
+    /// segment acknowledgement number used for last window update
+    wl2: usize,
+    /// initial send sequence number
+    iss: usize,
+}
+
+impl Default for Connection {
     fn default() -> Self {
-        // State::Closed
+        // Connection::Closed
         // listen on all ports by default
-        State::Listen
+        Connection {
+            state: State::Listen,
+        }
     }
 }
 
@@ -39,7 +75,7 @@ impl State {
                     tcph.destination_port(),
                     tcph.source_port(),
                     unimplemented!(),
-                    unimplemented(),
+                    unimplemented!(),
                 );
                 syn_ack.syn = true;
                 syn_ack.ack = true;
@@ -56,8 +92,8 @@ impl State {
                 let unwritten = {
                     let mut unwritten = &mut buff[..];
                     ip.write(&mut unwritten).ok();
-                    syn_ack.write(&mut unwritten);
-                    unwritten.len();
+                    syn_ack.write(&mut unwritten)?;
+                    unwritten.len()
                 };
                 nic.send(&buff[..unwritten])?;
                 Ok(0)
