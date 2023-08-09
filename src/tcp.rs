@@ -9,22 +9,23 @@ pub enum State {
 
 pub struct Connection {
     state: State,
+    send: SendSequenceSpace,
+    rcv: RecieveSequenceSpace,
 }
 
-///  State of the Send Sequence Space (RFC 793 S3.2 F4)
-///  ````
-///               1         2          3          4
-///          ----------|----------|----------|----------
-///                 SND.UNA    SND.NXT    SND.UNA
-///                                      +SND.WND
+// State of the Send Sequence Space (RFC 793 S3.2 F4)
 
-///    1 - old sequence numbers which have been acknowledged
-///    2 - sequence numbers of unacknowledged data
-///    3 - sequence numbers allowed for new data transmission
-///    4 - future sequence numbers which are not yet allowed
-///````
+//                    1         2          3          4
+//               ----------|----------|----------|----------
+//                      SND.UNA    SND.NXT    SND.UNA
+//                                           +SND.WND
 
-struct SendSequence {
+//         1 - old sequence numbers which have been acknowledged
+//         2 - sequence numbers of unacknowledged data
+//         3 - sequence numbers allowed for new data transmission
+//         4 - future sequence numbers which are not yet allowed
+
+struct SendSequenceSpace {
     /// send unacknowledged
     una: usize,
     /// send next
@@ -39,6 +40,28 @@ struct SendSequence {
     wl2: usize,
     /// initial send sequence number
     iss: usize,
+}
+
+// State of the Receive Sequence Space (RFC 793 S3.2 F5)
+
+//                       1          2          3
+//                   ----------|----------|----------
+//                          RCV.NXT    RCV.NXT
+//                                    +RCV.WND
+
+//        1 - old sequence numbers which have been acknowledged
+//        2 - sequence numbers allowed for new reception
+//        3 - future sequence numbers which are not yet allowed
+
+struct RecieveSequenceSpace {
+    /// recieve next
+    nxt: usize,
+    /// recieve window
+    wnd: usize,
+    /// recieve urgent pointer
+    up: bool,
+    /// initial recieve sequence
+    irs: usize,
 }
 
 impl Default for Connection {
